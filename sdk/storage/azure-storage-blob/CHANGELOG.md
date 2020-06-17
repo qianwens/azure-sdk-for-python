@@ -1,6 +1,34 @@
 # Release History
 
-## 12.2.1 (Unreleased)
+## 12.3.3 (Unreleased)
+
+
+## 12.3.2 (2020-6-12)
+**Fixes**
+- Fixed issue where batch requests could not be combined with SAS (#9534)
+- Batch requests now support applying parameters to individual blobs within the request via passing in a dictionary.
+- Metadata cannot have leading space (#11457)
+- Improve the performance of upload when using max_concurrency
+
+**Notes**
+- Updated dependency from azure-core<2.0.0,>=1.2.2 to azure-core<2.0.0,>=1.6.0
+
+## 12.3.1 (2020-04-29)
+
+**Fixes**
+- Fixed issue where batch requests could not be combined with token credentials (#9534)
+- Skip '/' in url encoding.
+
+
+## 12.3.0 (2020-03-10)
+
+**New features**
+
+- `stage_block` now propagates the response from the service.
+
+**Fixes**
+- Fixed a bug where a new transport is being passed in the `get_blob_client` method instead
+of using the existing one in the `ContainerClient`.
 
 **Notes**
 - The `StorageUserAgentPolicy` is now replaced with the `UserAgentPolicy` from azure-core. With this, the custom user agents are now added as a prefix instead of being appended.

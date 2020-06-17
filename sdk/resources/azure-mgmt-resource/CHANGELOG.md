@@ -1,5 +1,92 @@
 # Release History
 
+## 15.0.0b1 (2020-06-17)
+
+This is beta preview version.
+
+This version uses a next-generation code generator that introduces important breaking changes, but also important new features (like unified authentication and async programming).
+
+**General breaking changes**
+
+- Credential system has been completly revamped:
+
+  - `azure.common.credentials` or `msrestazure.azure_active_directory` instances are no longer supported, use the `azure-identity` classes instead: https://pypi.org/project/azure-identity/
+  - `credentials` parameter has been renamed `credential`
+
+- The `config` attribute no longer exists on a client, configuration should be passed as kwarg. Example: `MyClient(credential, subscription_id, enable_logging=True)`. For a complete set of
+  supported options, see the [parameters accept in init documentation of azure-core](https://github.com/Azure/azure-sdk-for-python/blob/master/sdk/core/azure-core/CLIENT_LIBRARY_DEVELOPER.md#available-policies)
+- You can't import a `version` module anymore, use `__version__` instead
+- Operations that used to return a `msrest.polling.LROPoller` now returns a `azure.core.polling.LROPoller` and are prefixed with `begin_`.
+- Exceptions tree have been simplified and most exceptions are now `azure.core.exceptions.HttpResponseError` (`CloudError` has been removed).
+- Most of the operation kwarg have changed. Some of the most noticeable:
+
+  - `raw` has been removed. Equivalent feature can be found using `cls`, a callback that will give access to internal HTTP response for advanced user
+  - For a complete set of
+  supported options, see the [parameters accept in Request documentation of azure-core](https://github.com/Azure/azure-sdk-for-python/blob/master/sdk/core/azure-core/CLIENT_LIBRARY_DEVELOPER.md#available-policies)
+
+**General new features**
+
+- Type annotations support using `typing`. SDKs are mypy ready.
+- This client has now stable and official support for async. Check the `aio` namespace of your package to find the async client.
+- This client now support natively tracing library like OpenCensus or OpenTelemetry. See this [tracing quickstart](https://github.com/Azure/azure-sdk-for-python/tree/master/sdk/core/azure-core-tracing-opentelemetry) for an overview.
+
+# 10.0.0 (2020-06-02)
+
+**Features**
+
+  - Model AzurePowerShellScript has a new parameter storage_account_settings
+  - Model DeploymentOperationProperties has a new parameter provisioning_operation
+  - Model AzureCliScript has a new parameter storage_account_settings
+
+**Breaking changes**
+
+  - Model AliasPathType no longer has parameter pattern
+
+## 9.0.0 (2020-03-31)
+
+**Features**
+
+  - Model Location has a new parameter metadata
+  - Model Location has a new parameter regional_display_name
+  - Model Deployment has a new parameter tags
+  - Model AliasPathType has a new parameter pattern
+  - Model ScopedDeployment has a new parameter tags
+  - Model DeploymentPropertiesExtended has a new parameter template_hash
+  - Model DeploymentPropertiesExtended has a new parameter validated_resources
+  - Model DeploymentPropertiesExtended has a new parameter error
+  - Model DeploymentPropertiesExtended has a new parameter output_resources
+  - Model DeploymentExtended has a new parameter tags
+  - Model Subscription has a new parameter tags
+  - Added operation FeaturesOperations.unregister
+  - Added operation TagsOperations.get_at_scope
+  - Added operation TagsOperations.update_at_scope
+  - Added operation TagsOperations.delete_at_scope
+  - Added operation TagsOperations.create_or_update_at_scope
+  - Added operation group DeploymentScriptsOperations
+
+**Breaking changes**
+
+  - Model Location no longer has parameter latitude
+  - Model Location no longer has parameter longitude
+  - Model DeploymentPropertiesExtended no longer has parameter template
+  - Model TagsResource no longer has parameter tags
+  - Model TagsResource no longer has parameter location
+  - Operation DeploymentsOperations.validate_at_management_group_scope has a new signature
+  - Operation DeploymentsOperations.validate_at_subscription_scope has a new signature
+  - Operation DeploymentsOperations.create_or_update_at_subscription_scope has a new signature
+  - Operation DeploymentsOperations.create_or_update_at_tenant_scope has a new signature
+  - Operation DeploymentsOperations.create_or_update_at_scope has a new signature
+  - Operation DeploymentsOperations.validate has a new signature
+  - Operation DeploymentsOperations.create_or_update has a new signature
+  - Operation DeploymentsOperations.validate_at_scope has a new signature
+  - Operation DeploymentsOperations.validate_at_tenant_scope has a new signature
+  - Operation DeploymentsOperations.create_or_update_at_management_group_scope has a new signature
+  - Model TenantIdDescription has a new signature
+  - Removed operation TagsOperations.resource_get
+  - Removed operation TagsOperations.resource_delete
+  - Removed operation TagsOperations.resource_create
+  - Removed operation TagsOperations.resource_update
+
 ## 8.0.1 (2020-02-04)
 
 **Bugfixes**

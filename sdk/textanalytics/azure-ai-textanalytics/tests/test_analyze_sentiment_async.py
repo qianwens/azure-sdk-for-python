@@ -6,20 +6,25 @@
 
 import pytest
 import platform
+import functools
 
 from azure.core.exceptions import HttpResponseError, ClientAuthenticationError
 from azure.core.pipeline.transport import AioHttpTransport
+from azure.core.credentials import AzureKeyCredential
 from multidict import CIMultiDict, CIMultiDictProxy
 from azure.ai.textanalytics.aio import TextAnalyticsClient
 from azure.ai.textanalytics import (
     VERSION,
     DetectLanguageInput,
-    TextDocumentInput,
-    TextAnalyticsApiKeyCredential
+    TextDocumentInput
 )
 
 from testcase import GlobalTextAnalyticsAccountPreparer
+from testcase import TextAnalyticsClientPreparer as _TextAnalyticsClientPreparer
 from asynctestcase import AsyncTextAnalyticsTest
+
+# pre-apply the client_cls positional argument so it needn't be explicitly passed below
+TextAnalyticsClientPreparer = functools.partial(_TextAnalyticsClientPreparer, TextAnalyticsClient)
 
 class AiohttpTestTransport(AioHttpTransport):
     """Workaround to vcrpy bug: https://github.com/kevin1024/vcrpy/pull/461
@@ -35,22 +40,19 @@ class AiohttpTestTransport(AioHttpTransport):
 class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_no_single_input(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
+    @TextAnalyticsClientPreparer()
+    async def test_no_single_input(self, client):
         with self.assertRaises(TypeError):
-            response = await text_analytics.analyze_sentiment("hello world")
+            response = await client.analyze_sentiment("hello world")
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_all_successful_passing_dict(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_all_successful_passing_dict(self, client):
         docs = [{"id": "1", "language": "en", "text": "Microsoft was founded by Bill Gates and Paul Allen."},
                 {"id": "2", "language": "en", "text": "I did not like the hotel we stayed at. It was too expensive."},
                 {"id": "3", "language": "en", "text": "The restaurant had really good food. I recommend you try it."}]
 
-        response = await text_analytics.analyze_sentiment(docs, show_stats=True)
+        response = await client.analyze_sentiment(docs, show_stats=True)
         self.assertEqual(response[0].sentiment, "neutral")
         self.assertEqual(response[1].sentiment, "negative")
         self.assertEqual(response[2].sentiment, "positive")
@@ -61,18 +63,25 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
             self.assertIsNotNone(doc.confidence_scores)
             self.assertIsNotNone(doc.sentences)
 
-    @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_all_successful_passing_text_document_input(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
+        self.assertEqual(len(response[0].sentences), 1)
+        self.assertEqual(response[0].sentences[0].text, "Microsoft was founded by Bill Gates and Paul Allen.")
+        self.assertEqual(len(response[1].sentences), 2)
+        self.assertEqual(response[1].sentences[0].text, "I did not like the hotel we stayed at.")
+        self.assertEqual(response[1].sentences[1].text, "It was too expensive.")
+        self.assertEqual(len(response[2].sentences), 2)
+        self.assertEqual(response[2].sentences[0].text, "The restaurant had really good food.")
+        self.assertEqual(response[2].sentences[1].text, "I recommend you try it.")
 
+    @GlobalTextAnalyticsAccountPreparer()
+    @TextAnalyticsClientPreparer()
+    async def test_all_successful_passing_text_document_input(self, client):
         docs = [
             TextDocumentInput(id="1", text="Microsoft was founded by Bill Gates and Paul Allen."),
             TextDocumentInput(id="2", text="I did not like the hotel we stayed at. It was too expensive."),
             TextDocumentInput(id="3", text="The restaurant had really good food. I recommend you try it."),
         ]
 
-        response = await text_analytics.analyze_sentiment(docs)
+        response = await client.analyze_sentiment(docs)
         self.assertEqual(response[0].sentiment, "neutral")
         self.assertEqual(response[1].sentiment, "negative")
         self.assertEqual(response[2].sentiment, "positive")
@@ -81,11 +90,18 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
             self.assertIsNotNone(doc.confidence_scores)
             self.assertIsNotNone(doc.sentences)
 
-    @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_passing_only_string(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
+        self.assertEqual(len(response[0].sentences), 1)
+        self.assertEqual(response[0].sentences[0].text, "Microsoft was founded by Bill Gates and Paul Allen.")
+        self.assertEqual(len(response[1].sentences), 2)
+        self.assertEqual(response[1].sentences[0].text, "I did not like the hotel we stayed at.")
+        self.assertEqual(response[1].sentences[1].text, "It was too expensive.")
+        self.assertEqual(len(response[2].sentences), 2)
+        self.assertEqual(response[2].sentences[0].text, "The restaurant had really good food.")
+        self.assertEqual(response[2].sentences[1].text, "I recommend you try it.")
 
+    @GlobalTextAnalyticsAccountPreparer()
+    @TextAnalyticsClientPreparer()
+    async def test_passing_only_string(self, client):
         docs = [
             u"Microsoft was founded by Bill Gates and Paul Allen.",
             u"I did not like the hotel we stayed at. It was too expensive.",
@@ -93,113 +109,119 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
             u""
         ]
 
-        response = await text_analytics.analyze_sentiment(docs)
+        response = await client.analyze_sentiment(docs)
         self.assertEqual(response[0].sentiment, "neutral")
         self.assertEqual(response[1].sentiment, "negative")
         self.assertEqual(response[2].sentiment, "positive")
         self.assertTrue(response[3].is_error)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_input_with_some_errors(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_input_with_some_errors(self, client):
         docs = [{"id": "1", "language": "en", "text": ""},
                 {"id": "2", "language": "english", "text": "I did not like the hotel we stayed at. It was too expensive."},
                 {"id": "3", "language": "en", "text": "The restaurant had really good food. I recommend you try it."}]
 
-        response = await text_analytics.analyze_sentiment(docs)
+        response = await client.analyze_sentiment(docs)
         self.assertTrue(response[0].is_error)
         self.assertTrue(response[1].is_error)
         self.assertFalse(response[2].is_error)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_input_with_all_errors(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_input_with_all_errors(self, client):
         docs = [{"id": "1", "language": "en", "text": ""},
                 {"id": "2", "language": "english", "text": "I did not like the hotel we stayed at. It was too expensive."},
                 {"id": "3", "language": "en", "text": ""}]
 
-        response = await text_analytics.analyze_sentiment(docs)
+        response = await client.analyze_sentiment(docs)
         self.assertTrue(response[0].is_error)
         self.assertTrue(response[1].is_error)
         self.assertTrue(response[2].is_error)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_empty_credential_class(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(""))
+    @TextAnalyticsClientPreparer()
+    @pytest.mark.xfail
+    async def test_too_many_documents(self, client):
+        # marking as xfail since the service hasn't added this error to this endpoint
+        docs = ["One", "Two", "Three", "Four", "Five", "Six"]
+
+        try:
+            await client.analyze_sentiment(docs)
+        except HttpResponseError as e:
+            assert e.status_code == 400
+
+    @GlobalTextAnalyticsAccountPreparer()
+    @TextAnalyticsClientPreparer()
+    async def test_output_same_order_as_input(self, client):
+        docs = [
+            TextDocumentInput(id="1", text="one"),
+            TextDocumentInput(id="2", text="two"),
+            TextDocumentInput(id="3", text="three"),
+            TextDocumentInput(id="4", text="four"),
+            TextDocumentInput(id="5", text="five")
+        ]
+
+        response = await client.analyze_sentiment(docs)
+
+        for idx, doc in enumerate(response):
+            self.assertEqual(str(idx + 1), doc.id)
+
+    @GlobalTextAnalyticsAccountPreparer()
+    @TextAnalyticsClientPreparer(client_kwargs={"text_analytics_account_key": ""})
+    async def test_empty_credential_class(self, client):
         with self.assertRaises(ClientAuthenticationError):
-            response = await text_analytics.analyze_sentiment(
+            response = await client.analyze_sentiment(
                 ["This is written in English."]
             )
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_bad_credentials(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential("xxxxxxxxxxxx"))
+    @TextAnalyticsClientPreparer(client_kwargs={"text_analytics_account_key": "xxxxxxxxxxxx"})
+    async def test_bad_credentials(self, client):
         with self.assertRaises(ClientAuthenticationError):
-            response = await text_analytics.analyze_sentiment(
+            response = await client.analyze_sentiment(
                 ["This is written in English."]
             )
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_bad_model_version(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-        with self.assertRaises(HttpResponseError):
-            response = await text_analytics.analyze_sentiment(
-                inputs=["Microsoft was founded by Bill Gates."],
-                model_version="old"
-            )
-
-    @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_bad_document_input(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_bad_document_input(self, client):
         docs = "This is the wrong type"
 
         with self.assertRaises(TypeError):
-            response = await text_analytics.analyze_sentiment(docs)
+            response = await client.analyze_sentiment(docs)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_mixing_inputs(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
+    @TextAnalyticsClientPreparer()
+    async def test_mixing_inputs(self, client):
         docs = [
             {"id": "1", "text": "Microsoft was founded by Bill Gates and Paul Allen."},
             TextDocumentInput(id="2", text="I did not like the hotel we stayed at. It was too expensive."),
             u"You cannot mix string input with the above inputs"
         ]
         with self.assertRaises(TypeError):
-            response = await text_analytics.analyze_sentiment(docs)
+            response = await client.analyze_sentiment(docs)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_out_of_order_ids(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_out_of_order_ids(self, client):
         docs = [{"id": "56", "text": ":)"},
                 {"id": "0", "text": ":("},
                 {"id": "22", "text": ""},
                 {"id": "19", "text": ":P"},
                 {"id": "1", "text": ":D"}]
 
-        response = await text_analytics.analyze_sentiment(docs)
+        response = await client.analyze_sentiment(docs)
         in_order = ["56", "0", "22", "19", "1"]
         for idx, resp in enumerate(response):
             self.assertEqual(resp.id, in_order[idx])
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_show_stats_and_model_version(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_show_stats_and_model_version(self, client):
         def callback(response):
-            self.assertIsNotNone(response.model_version)
+            self.assertIsNotNone(response)
+            self.assertIsNotNone(response.model_version, msg=response.raw_response)
             self.assertIsNotNone(response.raw_response)
             self.assertEqual(response.statistics.document_count, 5)
             self.assertEqual(response.statistics.transaction_count, 4)
@@ -212,7 +234,7 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
                 {"id": "19", "text": ":P"},
                 {"id": "1", "text": ":D"}]
 
-        response = await text_analytics.analyze_sentiment(
+        response = await client.analyze_sentiment(
             docs,
             show_stats=True,
             model_version="latest",
@@ -220,19 +242,15 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
         )
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_batch_size_over_limit(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_batch_size_over_limit(self, client):
         docs = [u"hello world"] * 1050
         with self.assertRaises(HttpResponseError):
-            response = await text_analytics.analyze_sentiment(docs)
+            response = await client.analyze_sentiment(docs)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_whole_batch_language_hint(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_whole_batch_language_hint(self, client):
         def callback(resp):
             language_str = "\"language\": \"fr\""
             language = resp.http_request.body.count(language_str)
@@ -244,13 +262,11 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
             u"The restaurant was not as good as I hoped."
         ]
 
-        response = await text_analytics.analyze_sentiment(docs, language="fr", raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, language="fr", raw_response_hook=callback)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_whole_batch_dont_use_language_hint(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_whole_batch_dont_use_language_hint(self, client):
         def callback(resp):
             language_str = "\"language\": \"\""
             language = resp.http_request.body.count(language_str)
@@ -262,13 +278,11 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
             u"The restaurant was not as good as I hoped."
         ]
 
-        response = await text_analytics.analyze_sentiment(docs, language="", raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, language="", raw_response_hook=callback)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_per_item_dont_use_language_hint(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_per_item_dont_use_language_hint(self, client):
         def callback(resp):
             language_str = "\"language\": \"\""
             language = resp.http_request.body.count(language_str)
@@ -282,13 +296,11 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
                 {"id": "2", "language": "", "text": "I did not like the hotel we stayed at."},
                 {"id": "3", "text": "The restaurant had really good food."}]
 
-        response = await text_analytics.analyze_sentiment(docs, raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, raw_response_hook=callback)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_whole_batch_language_hint_and_obj_input(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_whole_batch_language_hint_and_obj_input(self, client):
         def callback(resp):
             language_str = "\"language\": \"de\""
             language = resp.http_request.body.count(language_str)
@@ -300,13 +312,11 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
             TextDocumentInput(id="3", text="猫は幸せ"),
         ]
 
-        response = await text_analytics.analyze_sentiment(docs, language="de", raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, language="de", raw_response_hook=callback)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_whole_batch_language_hint_and_dict_input(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_whole_batch_language_hint_and_dict_input(self, client):
         def callback(resp):
             language_str = "\"language\": \"es\""
             language = resp.http_request.body.count(language_str)
@@ -316,13 +326,11 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
                 {"id": "2", "text": "I did not like the hotel we stayed at."},
                 {"id": "3", "text": "The restaurant had really good food."}]
 
-        response = await text_analytics.analyze_sentiment(docs, language="es", raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, language="es", raw_response_hook=callback)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_whole_batch_language_hint_and_obj_per_item_hints(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_whole_batch_language_hint_and_obj_per_item_hints(self, client):
         def callback(resp):
             language_str = "\"language\": \"es\""
             language = resp.http_request.body.count(language_str)
@@ -337,13 +345,11 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
             TextDocumentInput(id="3", text="猫は幸せ"),
         ]
 
-        response = await text_analytics.analyze_sentiment(docs, language="en", raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, language="en", raw_response_hook=callback)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_whole_batch_language_hint_and_dict_per_item_hints(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_whole_batch_language_hint_and_dict_per_item_hints(self, client):
         def callback(resp):
             language_str = "\"language\": \"es\""
             language = resp.http_request.body.count(language_str)
@@ -357,13 +363,11 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
                 {"id": "2", "language": "es", "text": "I did not like the hotel we stayed at."},
                 {"id": "3", "text": "The restaurant had really good food."}]
 
-        response = await text_analytics.analyze_sentiment(docs, language="en", raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, language="en", raw_response_hook=callback)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_client_passed_default_language_hint(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key), default_language="es")
-
+    @TextAnalyticsClientPreparer(client_kwargs={"default_language": "es"})
+    async def test_client_passed_default_language_hint(self, client):
         def callback(resp):
             language_str = "\"language\": \"es\""
             language = resp.http_request.body.count(language_str)
@@ -378,38 +382,51 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
                 {"id": "2", "text": "I did not like the hotel we stayed at."},
                 {"id": "3", "text": "The restaurant had really good food."}]
 
-        response = await text_analytics.analyze_sentiment(docs, raw_response_hook=callback)
-        response = await text_analytics.analyze_sentiment(docs, language="en", raw_response_hook=callback_2)
-        response = await text_analytics.analyze_sentiment(docs, raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, language="en", raw_response_hook=callback_2)
+        response = await client.analyze_sentiment(docs, raw_response_hook=callback)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
+    @TextAnalyticsClientPreparer()
+    async def test_invalid_language_hint_method(self, client):
+        response = await client.analyze_sentiment(
+            ["This should fail because we're passing in an invalid language hint"], language="notalanguage"
+        )
+        self.assertEqual(response[0].error.code, 'UnsupportedLanguageCode')
+
+    @GlobalTextAnalyticsAccountPreparer()
+    @TextAnalyticsClientPreparer()
+    async def test_invalid_language_hint_docs(self, client):
+        response = await client.analyze_sentiment(
+            [{"id": "1", "language": "notalanguage", "text": "This should fail because we're passing in an invalid language hint"}]
+        )
+        self.assertEqual(response[0].error.code, 'UnsupportedLanguageCode')
+
+    @GlobalTextAnalyticsAccountPreparer()
     async def test_rotate_subscription_key(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        credential = TextAnalyticsApiKeyCredential(text_analytics_account_key)
-        text_analytics = TextAnalyticsClient(text_analytics_account, credential)
+        credential = AzureKeyCredential(text_analytics_account_key)
+        client = TextAnalyticsClient(text_analytics_account, credential)
 
         docs = [{"id": "1", "text": "I will go to the park."},
                 {"id": "2", "text": "I did not like the hotel we stayed at."},
                 {"id": "3", "text": "The restaurant had really good food."}]
 
-        response = await text_analytics.analyze_sentiment(docs)
+        response = await client.analyze_sentiment(docs)
         self.assertIsNotNone(response)
 
-        credential.update_key("xxx")  # Make authentication fail
+        credential.update("xxx")  # Make authentication fail
         with self.assertRaises(ClientAuthenticationError):
-            response = await text_analytics.analyze_sentiment(docs)
+            response = await client.analyze_sentiment(docs)
 
-        credential.update_key(text_analytics_account_key)  # Authenticate successfully again
-        response = await text_analytics.analyze_sentiment(docs)
+        credential.update(text_analytics_account_key)  # Authenticate successfully again
+        response = await client.analyze_sentiment(docs)
         self.assertIsNotNone(response)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_user_agent(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_user_agent(self, client):
         def callback(resp):
-            self.assertIn("azsdk-python-azure-ai-textanalytics/{} Python/{} ({})".format(
+            self.assertIn("azsdk-python-ai-textanalytics/{} Python/{} ({})".format(
                 VERSION, platform.python_version(), platform.platform()),
                 resp.http_request.headers["User-Agent"]
             )
@@ -418,15 +435,13 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
                 {"id": "2", "text": "I did not like the hotel we stayed at."},
                 {"id": "3", "text": "The restaurant had really good food."}]
 
-        response = await text_analytics.analyze_sentiment(docs, raw_response_hook=callback)
+        response = await client.analyze_sentiment(docs, raw_response_hook=callback)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_document_attribute_error_no_result_attribute(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_document_attribute_error_no_result_attribute(self, client):
         docs = [{"id": "1", "text": ""}]
-        response = await text_analytics.analyze_sentiment(docs)
+        response = await client.analyze_sentiment(docs)
 
         # Attributes on DocumentError
         self.assertTrue(response[0].is_error)
@@ -441,16 +456,14 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
                 custom_error.args[0],
                 '\'DocumentError\' object has no attribute \'sentiment\'. '
                 'The service was unable to process this document:\nDocument Id: 1\nError: '
-                'invalidDocument - Document text is empty.\n'
+                'InvalidDocument - Document text is empty.\n'
             )
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_document_attribute_error_nonexistent_attribute(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_document_attribute_error_nonexistent_attribute(self, client):
         docs = [{"id": "1", "text": ""}]
-        response = await text_analytics.analyze_sentiment(docs)
+        response = await client.analyze_sentiment(docs)
 
         # Attribute not found on DocumentError or result obj, default behavior/message
         try:
@@ -462,22 +475,19 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
             )
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_bad_model_version_error(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_bad_model_version_error(self, client):
         docs = [{"id": "1", "language": "english", "text": "I did not like the hotel we stayed at."}]
 
         try:
-            result = await text_analytics.analyze_sentiment(docs, model_version="bad")
+            result = await client.analyze_sentiment(docs, model_version="bad")
         except HttpResponseError as err:
-            self.assertEqual(err.error_code, "InvalidRequest")
-            self.assertIsNotNone(err.message)
+            self.assertEqual(err.error.code, "ModelVersionIncorrect")
+            self.assertIsNotNone(err.error.message)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_document_errors(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
+    @TextAnalyticsClientPreparer()
+    async def test_document_errors(self, client):
         text = ""
         for _ in range(5121):
             text += "x"
@@ -486,67 +496,97 @@ class TestAnalyzeSentiment(AsyncTextAnalyticsTest):
                 {"id": "2", "language": "english", "text": "I did not like the hotel we stayed at."},
                 {"id": "3", "text": text}]
 
-        doc_errors = await text_analytics.analyze_sentiment(docs)
-        self.assertEqual(doc_errors[0].error.code, "invalidDocument")
+        doc_errors = await client.analyze_sentiment(docs)
+        self.assertEqual(doc_errors[0].error.code, "InvalidDocument")
         self.assertIsNotNone(doc_errors[0].error.message)
-        self.assertEqual(doc_errors[1].error.code, "unsupportedLanguageCode")
+        self.assertEqual(doc_errors[1].error.code, "UnsupportedLanguageCode")
         self.assertIsNotNone(doc_errors[1].error.message)
-        self.assertEqual(doc_errors[2].error.code, "invalidDocument")
+        self.assertEqual(doc_errors[2].error.code, "InvalidDocument")
         self.assertIsNotNone(doc_errors[2].error.message)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_missing_input_records_error(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))\
+    @TextAnalyticsClientPreparer()
+    async def test_document_warnings(self, client):
+        # No warnings actually returned for analyze_sentiment. Will update when they add
+        docs = [
+            {"id": "1", "text": "This won't actually create a warning :'("},
+        ]
 
-        docs = []
-        try:
-            result = await text_analytics.analyze_sentiment(docs)
-        except HttpResponseError as err:
-            self.assertEqual(err.error_code, "MissingInputRecords")
-            self.assertIsNotNone(err.message)
+        result = await client.analyze_sentiment(docs)
+        for doc in result:
+            doc_warnings = doc.warnings
+            self.assertEqual(len(doc_warnings), 0)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_duplicate_ids_error(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
+    @TextAnalyticsClientPreparer()
+    async def test_not_passing_list_for_docs(self, client):
+        docs = {"id": "1", "text": "hello world"}
+        with pytest.raises(TypeError) as excinfo:
+            await client.analyze_sentiment(docs)
+        assert "Input documents cannot be a dict" in str(excinfo.value)
+
+    @GlobalTextAnalyticsAccountPreparer()
+    @TextAnalyticsClientPreparer()
+    async def test_missing_input_records_error(self, client):
+        docs = []
+        with pytest.raises(ValueError) as excinfo:
+            await client.analyze_sentiment(docs)
+        assert "Input documents can not be empty or None" in str(excinfo.value)
+
+    @GlobalTextAnalyticsAccountPreparer()
+    @TextAnalyticsClientPreparer()
+    async def test_passing_none_docs(self, client):
+        with pytest.raises(ValueError) as excinfo:
+            await client.analyze_sentiment(None)
+        assert "Input documents can not be empty or None" in str(excinfo.value)
+
+    @GlobalTextAnalyticsAccountPreparer()
+    @TextAnalyticsClientPreparer()
+    async def test_duplicate_ids_error(self, client):
         # Duplicate Ids
         docs = [{"id": "1", "text": "hello world"},
                 {"id": "1", "text": "I did not like the hotel we stayed at."}]
         try:
-            result = await text_analytics.analyze_sentiment(docs)
+            result = await client.analyze_sentiment(docs)
         except HttpResponseError as err:
-            self.assertEqual(err.error_code, "InvalidDocument")
-            self.assertIsNotNone(err.message)
+            self.assertEqual(err.error.code, "InvalidDocument")
+            self.assertIsNotNone(err.error.message)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_batch_size_over_limit_error(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_batch_size_over_limit_error(self, client):
         # Batch size over limit
         docs = [u"hello world"] * 1001
         try:
-            response = await text_analytics.analyze_sentiment(docs)
+            response = await client.analyze_sentiment(docs)
         except HttpResponseError as err:
-            self.assertEqual(err.error_code, "InvalidDocumentBatch")
-            self.assertIsNotNone(err.message)
+            self.assertEqual(err.error.code, "InvalidDocumentBatch")
+            self.assertIsNotNone(err.error.message)
 
     @GlobalTextAnalyticsAccountPreparer()
-    @AsyncTextAnalyticsTest.await_prepared_test
-    async def test_language_kwarg_spanish(self, resource_group, location, text_analytics_account, text_analytics_account_key):
-        text_analytics = TextAnalyticsClient(text_analytics_account, TextAnalyticsApiKeyCredential(text_analytics_account_key))
-
+    @TextAnalyticsClientPreparer()
+    async def test_language_kwarg_spanish(self, client):
         def callback(response):
             language_str = "\"language\": \"es\""
             self.assertEqual(response.http_request.body.count(language_str), 1)
             self.assertIsNotNone(response.model_version)
             self.assertIsNotNone(response.statistics)
 
-        res = await text_analytics.analyze_sentiment(
-            inputs=["Bill Gates is the CEO of Microsoft."],
+        res = await client.analyze_sentiment(
+            documents=["Bill Gates is the CEO of Microsoft."],
             model_version="latest",
             show_stats=True,
             language="es",
             raw_response_hook=callback
         )
+
+    @GlobalTextAnalyticsAccountPreparer()
+    @TextAnalyticsClientPreparer()
+    async def test_pass_cls(self, client):
+        def callback(pipeline_response, deserialized, _):
+            return "cls result"
+        res = await client.analyze_sentiment(
+            documents=["Test passing cls to endpoint"],
+            cls=callback
+        )
+        assert res == "cls result"

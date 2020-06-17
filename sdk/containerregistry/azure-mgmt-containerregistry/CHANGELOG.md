@@ -1,5 +1,53 @@
 # Release History
 
+## 3.0.0rc13(2020-05-15)
+
+**Features**
+
+  - Model Replication has a new parameter region_endpoint_enabled
+  - Model ReplicationUpdateParameters has a new parameter region_endpoint_enabled
+
+**Breaking changes**
+
+  - Operation ReplicationsOperations.create has a new signature
+  - Operation ReplicationsOperations.update has a new signature
+  - Operation ReplicationsOperations.create has a new signature
+
+## 3.0.0rc12(2020-05-06)
+
+**Features**
+
+  - Model Registry has a new parameter public_network_access
+  - Model ErrorResponseBody has a new parameter details
+  - Model ErrorResponseBody has a new parameter target
+  - Model RegistryUpdateParameters has a new parameter public_network_access
+  - Added operation group PipelineRunsOperations
+  - Added operation group ImportPipelinesOperations
+  - Added operation group ExportPipelinesOperations
+
+## 3.0.0rc11 (2020-03-25)
+
+**Breaking changes**
+
+  - Operation PrivateEndpointConnectionsOperations.create_or_update has a new signature
+  - Operation PrivateEndpointConnectionsOperations.create_or_update has a new signature
+
+## 3.0.0rc10 (2020-03-11)
+
+**Features**
+
+- Model FileTaskRunRequest has a new parameter agent_pool_name
+- Model RunRequest has a new parameter agent_pool_name
+- Model RunFilter has a new parameter agent_pool_name
+- Model DockerBuildRequest has a new parameter agent_pool_name
+- Model TaskRunRequest has a new parameter agent_pool_name
+- Model EncodedTaskRunRequest has a new parameter agent_pool_name
+- Model TaskUpdateParameters has a new parameter agent_pool_name
+- Model Run has a new parameter agent_pool_name
+- Model Task has a new parameter agent_pool_name
+- Added operation TaskRunsOperations.get_details
+- Added operation group AgentPoolsOperations
+
 ## 3.0.0rc9 (2020-03-02)
 
 **Features**

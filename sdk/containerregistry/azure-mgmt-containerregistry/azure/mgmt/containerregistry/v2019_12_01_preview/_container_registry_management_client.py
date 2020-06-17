@@ -13,11 +13,15 @@ from msrest.service_client import SDKClient
 from msrest import Serializer, Deserializer
 
 from ._configuration import ContainerRegistryManagementClientConfiguration
+from .operations import ExportPipelinesOperations
 from .operations import RegistriesOperations
+from .operations import ImportPipelinesOperations
 from .operations import Operations
+from .operations import PipelineRunsOperations
 from .operations import PrivateEndpointConnectionsOperations
 from .operations import ReplicationsOperations
 from .operations import WebhooksOperations
+from .operations import AgentPoolsOperations
 from .operations import RunsOperations
 from .operations import TaskRunsOperations
 from .operations import TasksOperations
@@ -32,16 +36,24 @@ class ContainerRegistryManagementClient(SDKClient):
     :ivar config: Configuration for client.
     :vartype config: ContainerRegistryManagementClientConfiguration
 
+    :ivar export_pipelines: ExportPipelines operations
+    :vartype export_pipelines: azure.mgmt.containerregistry.v2019_12_01_preview.operations.ExportPipelinesOperations
     :ivar registries: Registries operations
     :vartype registries: azure.mgmt.containerregistry.v2019_12_01_preview.operations.RegistriesOperations
+    :ivar import_pipelines: ImportPipelines operations
+    :vartype import_pipelines: azure.mgmt.containerregistry.v2019_12_01_preview.operations.ImportPipelinesOperations
     :ivar operations: Operations operations
     :vartype operations: azure.mgmt.containerregistry.v2019_12_01_preview.operations.Operations
+    :ivar pipeline_runs: PipelineRuns operations
+    :vartype pipeline_runs: azure.mgmt.containerregistry.v2019_12_01_preview.operations.PipelineRunsOperations
     :ivar private_endpoint_connections: PrivateEndpointConnections operations
     :vartype private_endpoint_connections: azure.mgmt.containerregistry.v2019_12_01_preview.operations.PrivateEndpointConnectionsOperations
     :ivar replications: Replications operations
     :vartype replications: azure.mgmt.containerregistry.v2019_12_01_preview.operations.ReplicationsOperations
     :ivar webhooks: Webhooks operations
     :vartype webhooks: azure.mgmt.containerregistry.v2019_12_01_preview.operations.WebhooksOperations
+    :ivar agent_pools: AgentPools operations
+    :vartype agent_pools: azure.mgmt.containerregistry.v2019_12_01_preview.operations.AgentPoolsOperations
     :ivar runs: Runs operations
     :vartype runs: azure.mgmt.containerregistry.v2019_12_01_preview.operations.RunsOperations
     :ivar task_runs: TaskRuns operations
@@ -71,15 +83,23 @@ class ContainerRegistryManagementClient(SDKClient):
         self._serialize = Serializer(client_models)
         self._deserialize = Deserializer(client_models)
 
+        self.export_pipelines = ExportPipelinesOperations(
+            self._client, self.config, self._serialize, self._deserialize)
         self.registries = RegistriesOperations(
             self._client, self.config, self._serialize, self._deserialize)
+        self.import_pipelines = ImportPipelinesOperations(
+            self._client, self.config, self._serialize, self._deserialize)
         self.operations = Operations(
+            self._client, self.config, self._serialize, self._deserialize)
+        self.pipeline_runs = PipelineRunsOperations(
             self._client, self.config, self._serialize, self._deserialize)
         self.private_endpoint_connections = PrivateEndpointConnectionsOperations(
             self._client, self.config, self._serialize, self._deserialize)
         self.replications = ReplicationsOperations(
             self._client, self.config, self._serialize, self._deserialize)
         self.webhooks = WebhooksOperations(
+            self._client, self.config, self._serialize, self._deserialize)
+        self.agent_pools = AgentPoolsOperations(
             self._client, self.config, self._serialize, self._deserialize)
         self.runs = RunsOperations(
             self._client, self.config, self._serialize, self._deserialize)

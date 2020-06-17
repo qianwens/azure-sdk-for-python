@@ -32,11 +32,11 @@ def _parallel_uploads(executor, uploader, pending, running):
         done, running = futures.wait(running, return_when=futures.FIRST_COMPLETED)
         range_ids.extend([chunk.result() for chunk in done])
         try:
-            next_chunk = next(pending)
+            for _ in range(0, len(done)):
+                next_chunk = next(pending)
+                running.add(executor.submit(with_current_context(uploader), next_chunk))
         except StopIteration:
             break
-        else:
-            running.add(executor.submit(with_current_context(uploader), next_chunk))
 
     # Wait for the remaining uploads to finish
     done, _running = futures.wait(running)
@@ -331,6 +331,24 @@ class AppendBlobChunkUploader(_ChunkUploader):  # pylint: disable=abstract-metho
                 upload_stream_current=self.progress_total,
                 **self.request_options
             )
+
+
+class DataLakeFileChunkUploader(_ChunkUploader):  # pylint: disable=abstract-method
+
+    def _upload_chunk(self, chunk_offset, chunk_data):
+        # avoid uploading the empty pages
+        self.response_headers = self.service.append_data(
+            body=chunk_data,
+            position=chunk_offset,
+            content_length=len(chunk_data),
+            cls=return_response_headers,
+            data_stream_total=self.total_size,
+            upload_stream_current=self.progress_total,
+            **self.request_options
+        )
+
+        if not self.parallel and self.request_options.get('modified_access_conditions'):
+            self.request_options['modified_access_conditions'].if_match = self.response_headers['etag']
 
 
 class FileChunkUploader(_ChunkUploader):  # pylint: disable=abstract-method

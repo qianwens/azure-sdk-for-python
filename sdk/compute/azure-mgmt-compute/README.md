@@ -2,12 +2,12 @@
 
 This is the Microsoft Azure Compute Management Client Library.
 This package has been tested with Python 2.7, 3.5, 3.6, 3.7 and 3.8.
-For a more complete view of Azure libraries, see the [Github repo](https://github.com/Azure/azure-sdk-for-python/sdk)
+For a more complete view of Azure libraries, see the [Github repo](https://github.com/Azure/azure-sdk-for-python/)
 
 
 # Usage
 
-For code examples, see [Compute Management](https://docs.microsoft.com/python/api/overview/azure/virtualmachines)
+For code examples, see [Compute Management](https://docs.microsoft.com/python/api/overview/azure/virtualmachines?view=azure-python-preview)
 on docs.microsoft.com.
 
 

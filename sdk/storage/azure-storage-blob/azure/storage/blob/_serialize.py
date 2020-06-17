@@ -40,7 +40,7 @@ def _get_match_headers(kwargs, match_param, etag_param):
     elif match_condition == MatchConditions.IfMissing:
         if_none_match = '*'
     elif match_condition is None:
-        if etag_param in kwargs:
+        if kwargs.get(etag_param):
             raise ValueError("'{}' specified without '{}'.".format(etag_param, match_param))
     else:
         raise TypeError("Invalid match condition: {}".format(match_condition))
@@ -83,12 +83,12 @@ def get_container_cpk_scope_info(kwargs):
         if isinstance(encryption_scope, ContainerEncryptionScope):
             return ContainerCpkScopeInfo(
                 default_encryption_scope=encryption_scope.default_encryption_scope,
-                deny_encryption_scope_override=encryption_scope.prevent_encryption_scope_override
+                prevent_encryption_scope_override=encryption_scope.prevent_encryption_scope_override
             )
         if isinstance(encryption_scope, dict):
             return ContainerCpkScopeInfo(
                 default_encryption_scope=encryption_scope['default_encryption_scope'],
-                deny_encryption_scope_override=encryption_scope.get('prevent_encryption_scope_override')
+                prevent_encryption_scope_override=encryption_scope.get('prevent_encryption_scope_override')
             )
         raise TypeError("Container encryption scope must be dict or type ContainerEncryptionScope.")
     return None

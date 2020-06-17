@@ -1,6 +1,13 @@
 # Release History
 
-## 12.1.1 (Unreleased)
+## 12.1.3 (Unreleased)
+
+
+## 12.1.2 (2020-6-12)
+**Fixes**
+- Improve the performance of upload when using max_concurrency
+
+## 12.1.1 (2020-03-10)
 
 **Notes**
 - The `StorageUserAgentPolicy` is now replaced with the `UserAgentPolicy` from azure-core. With this, the custom user agents are now added as a prefix instead of being appended.

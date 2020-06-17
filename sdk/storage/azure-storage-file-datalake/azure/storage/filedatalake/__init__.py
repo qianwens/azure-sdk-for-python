@@ -4,6 +4,7 @@
 # license information.
 # --------------------------------------------------------------------------
 
+from ._download import StorageStreamDownloader
 from ._data_lake_file_client import DataLakeFileClient
 from ._data_lake_directory_client import DataLakeDirectoryClient
 from ._file_system_client import FileSystemClient
@@ -15,6 +16,7 @@ from ._models import (
     FileSystemProperties,
     FileSystemPropertiesPaged,
     DirectoryProperties,
+    FileProperties,
     PathProperties,
     PathPropertiesPaged,
     LeaseProperties,
@@ -53,6 +55,7 @@ __all__ = [
     'FileSystemProperties',
     'FileSystemPropertiesPaged',
     'DirectoryProperties',
+    'FileProperties',
     'PathProperties',
     'PathPropertiesPaged',
     'LeaseProperties',
@@ -66,4 +69,5 @@ __all__ = [
     'generate_directory_sas',
     'generate_file_sas',
     'VERSION',
+    'StorageStreamDownloader'
 ]

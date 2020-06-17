@@ -12,13 +12,60 @@
 from enum import Enum
 
 
+class ResourceIdentityType(str, Enum):
+
+    system_assigned = "SystemAssigned"
+    user_assigned = "UserAssigned"
+    system_assigned_user_assigned = "SystemAssigned, UserAssigned"
+    none = "None"
+
+
+class PipelineOptions(str, Enum):
+
+    overwrite_tags = "OverwriteTags"
+    overwrite_blobs = "OverwriteBlobs"
+    delete_source_blob_on_success = "DeleteSourceBlobOnSuccess"
+    continue_on_errors = "ContinueOnErrors"
+
+
+class ProvisioningState(str, Enum):
+
+    creating = "Creating"
+    updating = "Updating"
+    deleting = "Deleting"
+    succeeded = "Succeeded"
+    failed = "Failed"
+    canceled = "Canceled"
+
+
 class ImportMode(str, Enum):
 
     no_force = "NoForce"
     force = "Force"
 
 
-class Status(str, Enum):
+class PipelineSourceType(str, Enum):
+
+    azure_storage_blob_container = "AzureStorageBlobContainer"
+
+
+class TriggerStatus(str, Enum):
+
+    enabled = "Enabled"
+    disabled = "Disabled"
+
+
+class PipelineRunSourceType(str, Enum):
+
+    azure_storage_blob = "AzureStorageBlob"
+
+
+class PipelineRunTargetType(str, Enum):
+
+    azure_storage_blob = "AzureStorageBlob"
+
+
+class ConnectionStatus(str, Enum):
 
     approved = "Approved"
     pending = "Pending"
@@ -30,16 +77,6 @@ class ActionsRequired(str, Enum):
 
     none = "None"
     recreate = "Recreate"
-
-
-class ProvisioningState(str, Enum):
-
-    creating = "Creating"
-    updating = "Updating"
-    deleting = "Deleting"
-    succeeded = "Succeeded"
-    failed = "Failed"
-    canceled = "Canceled"
 
 
 class SkuName(str, Enum):
@@ -56,14 +93,6 @@ class SkuTier(str, Enum):
     basic = "Basic"
     standard = "Standard"
     premium = "Premium"
-
-
-class ResourceIdentityType(str, Enum):
-
-    system_assigned = "SystemAssigned"
-    user_assigned = "UserAssigned"
-    system_assigned_user_assigned = "SystemAssigned, UserAssigned"
-    none = "None"
 
 
 class DefaultAction(str, Enum):
@@ -94,6 +123,12 @@ class EncryptionStatus(str, Enum):
     disabled = "disabled"
 
 
+class PublicNetworkAccess(str, Enum):
+
+    enabled = "Enabled"
+    disabled = "Disabled"
+
+
 class PasswordName(str, Enum):
 
     password = "password"
@@ -121,6 +156,12 @@ class WebhookAction(str, Enum):
     chart_delete = "chart_delete"
 
 
+class OS(str, Enum):
+
+    windows = "Windows"
+    linux = "Linux"
+
+
 class RunStatus(str, Enum):
 
     queued = "Queued"
@@ -139,12 +180,6 @@ class RunType(str, Enum):
     quick_run = "QuickRun"
     auto_build = "AutoBuild"
     auto_run = "AutoRun"
-
-
-class OS(str, Enum):
-
-    windows = "Windows"
-    linux = "Linux"
 
 
 class Architecture(str, Enum):
@@ -173,12 +208,6 @@ class BaseImageDependencyType(str, Enum):
 
     build_time = "BuildTime"
     run_time = "RunTime"
-
-
-class TriggerStatus(str, Enum):
-
-    disabled = "Disabled"
-    enabled = "Enabled"
 
 
 class SourceControlType(str, Enum):

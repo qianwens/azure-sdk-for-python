@@ -1,5 +1,100 @@
 # Release History
 
+## 16.0.0b1 (2020-06-17)
+
+This is beta preview version.
+For detailed changelog please refer to equivalent stable version 10.2.0 (https://pypi.org/project/azure-mgmt-network/10.2.0/)
+
+This version uses a next-generation code generator that introduces important breaking changes, but also important new features (like unified authentication and async programming).
+
+**General breaking changes**
+
+- Credential system has been completly revamped:
+
+  - `azure.common.credentials` or `msrestazure.azure_active_directory` instances are no longer supported, use the `azure-identity` classes instead: https://pypi.org/project/azure-identity/
+  - `credentials` parameter has been renamed `credential`
+
+- The `config` attribute no longer exists on a client, configuration should be passed as kwarg. Example: `MyClient(credential, subscription_id, enable_logging=True)`. For a complete set of
+  supported options, see the [parameters accept in init documentation of azure-core](https://github.com/Azure/azure-sdk-for-python/blob/master/sdk/core/azure-core/CLIENT_LIBRARY_DEVELOPER.md#available-policies)
+- You can't import a `version` module anymore, use `__version__` instead
+- Operations that used to return a `msrest.polling.LROPoller` now returns a `azure.core.polling.LROPoller` and are prefixed with `begin_`.
+- Exceptions tree have been simplified and most exceptions are now `azure.core.exceptions.HttpResponseError` (`CloudError` has been removed).
+- Most of the operation kwarg have changed. Some of the most noticeable:
+
+  - `raw` has been removed. Equivalent feature can be found using `cls`, a callback that will give access to internal HTTP response for advanced user
+  - For a complete set of
+  supported options, see the [parameters accept in Request documentation of azure-core](https://github.com/Azure/azure-sdk-for-python/blob/master/sdk/core/azure-core/CLIENT_LIBRARY_DEVELOPER.md#available-policies)
+
+**General new features**
+
+- Type annotations support using `typing`. SDKs are mypy ready.
+- This client has now stable and official support for async. Check the `aio` namespace of your package to find the async client.
+- This client now support natively tracing library like OpenCensus or OpenTelemetry. See this [tracing quickstart](https://github.com/Azure/azure-sdk-for-python/tree/master/sdk/core/azure-core-tracing-opentelemetry) for an overview.
+
+
+## 10.2.0 (2020-04-10)
+
+**Features**
+
+  - Model VpnConnection has a new parameter routing_configuration
+  - Model NatRuleCondition has a new parameter terminate_tls
+  - Model HubVirtualNetworkConnection has a new parameter routing_configuration
+  - Model ExpressRouteConnection has a new parameter routing_configuration
+  - Model FirewallPolicy has a new parameter transport_security
+  - Model FirewallPolicy has a new parameter identity
+  - Model FirewallPolicy has a new parameter threat_intel_whitelist
+  - Model ApplicationRuleCondition has a new parameter target_urls
+  - Model P2SConnectionConfiguration has a new parameter routing_configuration
+  - Model BackendAddressPool has a new parameter load_balancer_backend_addresses
+  - Added operation LoadBalancerBackendAddressPoolsOperations.create_or_update
+  - Added operation LoadBalancerBackendAddressPoolsOperations.delete
+  - Added operation group HubRouteTablesOperations
+
+## 10.1.0 (2020-04-10)
+
+**Features**
+
+  - Model VpnConnection has a new parameter dpd_timeout_seconds
+  - Model FirewallPolicy has a new parameter intrusion_system_mode
+  - Model Subnet has a new parameter ip_allocations
+  - Model ApplicationGateway has a new parameter force_firewall_policy_association
+  - Model PrivateEndpoint has a new parameter custom_dns_configs
+  - Model VirtualNetworkGatewayConnection has a new parameter dpd_timeout_seconds
+  - Model VpnClientConfiguration has a new parameter radius_servers
+  - Model VirtualNetwork has a new parameter ip_allocations
+  - Model VirtualHub has a new parameter security_partner_provider
+  - Model VpnServerConfiguration has a new parameter radius_servers
+  - Added operation group PrivateDnsZoneGroupsOperations
+  - Added operation group SecurityPartnerProvidersOperations
+  - Added operation group IpAllocationsOperations
+
+## 10.0.0 (2020-03-31)
+
+**Features**
+
+  - Model VirtualNetworkGatewayConnection has a new parameter use_local_azure_ip_address
+  - Model NetworkRuleCondition has a new parameter source_ip_groups
+  - Model NetworkRuleCondition has a new parameter destination_ip_groups
+  - Model VirtualNetworkGatewayIPConfiguration has a new parameter private_ip_address
+  - Model BgpSettings has a new parameter bgp_peering_addresses
+  - Model ExpressRouteCircuitConnection has a new parameter ipv6_circuit_connection_config
+  - Model ApplicationGatewayHttpListener has a new parameter host_names
+  - Model ApplicationRuleCondition has a new parameter source_ip_groups
+  - Model VirtualNetworkGateway has a new parameter enable_private_ip_address
+  - Model LocalNetworkGateway has a new parameter fqdn
+  - Model VpnSiteLink has a new parameter fqdn
+  - Model NetworkSecurityGroup has a new parameter flow_logs
+  - Added operation NetworkManagementClientOperationsMixin.put_bastion_shareable_link
+  - Added operation NetworkManagementClientOperationsMixin.get_bastion_shareable_link
+  - Added operation NetworkManagementClientOperationsMixin.delete_bastion_shareable_link
+  - Added operation NetworkManagementClientOperationsMixin.disconnect_active_sessions
+  - Added operation NetworkManagementClientOperationsMixin.get_active_sessions
+  - Added operation group NetworkVirtualAppliancesOperations
+
+**Breaking changes**
+
+  - Model ApplicationGatewayHttpListener no longer has parameter hostnames
+
 ## 9.0.0 (2020-01-17)
 
 **Features**

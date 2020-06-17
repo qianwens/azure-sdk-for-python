@@ -4,11 +4,12 @@
 # ------------------------------------
 from azure.core.exceptions import AzureError, HttpResponseError
 from azure.core.tracing.decorator_async import distributed_trace_async
-from azure.keyvault.keys._shared import AsyncKeyVaultClientBase, parse_vault_id
 
 from .. import DecryptResult, EncryptResult, SignResult, VerifyResult, UnwrapResult, WrapResult
 from .._internal import EllipticCurveKey, RsaKey, SymmetricKey
+from ...crypto._client import _enforce_nbf_exp
 from ..._models import KeyVaultKey
+from ..._shared import AsyncKeyVaultClientBase, parse_vault_id
 
 try:
     from typing import TYPE_CHECKING
@@ -18,7 +19,7 @@ except ImportError:
 if TYPE_CHECKING:
     # pylint:disable=unused-import
     from typing import Any, Optional, Union
-    from azure.core.credentials import TokenCredential
+    from azure.core.credentials_async import AsyncTokenCredential
     from .. import EncryptionAlgorithm, KeyWrapAlgorithm, SignatureAlgorithm
     from .._internal import Key as _Key
 
@@ -33,7 +34,8 @@ class CryptographyClient(AsyncKeyVaultClientBase):
     :type key: str or :class:`~azure.keyvault.keys.KeyVaultKey`
     :param credential: An object which can provide an access token for the vault, such as a credential from
         :mod:`azure.identity.aio`
-    :keyword str api_version: version of the Key Vault API to use. Defaults to the most recent.
+    :keyword api_version: version of the Key Vault API to use. Defaults to the most recent.
+    :paramtype api_version: ~azure.keyvault.keys.ApiVersion
     :keyword transport: transport to use. Defaults to :class:`~azure.core.pipeline.transport.AioHttpTransport`.
     :paramtype transport: ~azure.core.pipeline.transport.AsyncHttpTransport
 
@@ -56,7 +58,7 @@ class CryptographyClient(AsyncKeyVaultClientBase):
 
     """
 
-    def __init__(self, key: "Union[KeyVaultKey, str]", credential: "TokenCredential", **kwargs: "Any") -> None:
+    def __init__(self, key: "Union[KeyVaultKey, str]", credential: "AsyncTokenCredential", **kwargs: "Any") -> None:
         if isinstance(key, KeyVaultKey):
             self._key = key
             self._key_id = parse_vault_id(key.id)
@@ -76,9 +78,7 @@ class CryptographyClient(AsyncKeyVaultClientBase):
 
         self._internal_key = None  # type: Optional[_Key]
 
-        super(CryptographyClient, self).__init__(
-            vault_url=self._key_id.vault_url, credential=credential, **kwargs
-        )
+        super().__init__(vault_url=self._key_id.vault_url, credential=credential, **kwargs)
 
     @property
     def key_id(self) -> str:
@@ -157,6 +157,7 @@ class CryptographyClient(AsyncKeyVaultClientBase):
 
         local_key = await self._get_local_key(**kwargs)
         if local_key:
+            _enforce_nbf_exp(self._key)
             if "encrypt" not in self._allowed_ops:
                 raise AzureError("This client doesn't have 'keys/encrypt' permission")
             result = local_key.encrypt(plaintext, algorithm=algorithm.value)
@@ -223,6 +224,7 @@ class CryptographyClient(AsyncKeyVaultClientBase):
 
         local_key = await self._get_local_key(**kwargs)
         if local_key:
+            _enforce_nbf_exp(self._key)
             if "wrapKey" not in self._allowed_ops:
                 raise AzureError("This client doesn't have 'keys/wrapKey' permission")
             result = local_key.wrap_key(key, algorithm=algorithm.value)

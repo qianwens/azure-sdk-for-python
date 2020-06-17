@@ -11,10 +11,11 @@ parameters:
   BuildDocs: true
   JobName: Test
   AllocateResourceGroup: 'true'
+  TestTimeoutInMinutes: 120
   Matrix:
     Linux_Python35:
       OSName: 'Linux'
-      OSVmImage: 'ubuntu-16.04'
+      OSVmImage: 'ubuntu-18.04'
       PythonVersion: '3.5'
     MacOs_Python37:
       OSName: 'MacOS'
@@ -26,11 +27,11 @@ parameters:
       PythonVersion: '2.7'
     Linux_PyPy3:
       OSName: 'Linux'
-      OSVmImage: 'ubuntu-16.04'
+      OSVmImage: 'ubuntu-18.04'
       PythonVersion: 'pypy3'
     Linux_Python38:
       OSName: 'Linux'
-      OSVmImage: 'ubuntu-16.04'
+      OSVmImage: 'ubuntu-18.04'
       PythonVersion: '3.8'
 
 jobs:
@@ -39,7 +40,7 @@ jobs:
       skipComponentGovernanceDetection: true
       CoverageArg: --disablecov
 
-    timeoutInMinutes: 120
+    timeoutInMinutes: ${{ parameters.TestTimeoutInMinutes }}
     strategy:
       maxParallel: ${{ parameters.MaxParallel }}
       matrix: ${{ parameters.Matrix }}
@@ -49,6 +50,8 @@ jobs:
       vmImage: $(OSVmImage)
 
     steps:
+      - template: /eng/common/pipelines/templates/steps/bypass-local-dns.yml
+
       - ${{ if eq(parameters['AllocateResourceGroup'], 'true') }}:
         - pwsh: |
             $BaseName = 't' + (New-Guid).ToString('n').Substring(0, 16)

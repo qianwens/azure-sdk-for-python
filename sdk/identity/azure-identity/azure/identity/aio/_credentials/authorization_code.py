@@ -2,7 +2,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 # ------------------------------------
-import asyncio
 from typing import TYPE_CHECKING
 
 from azure.core.exceptions import ClientAuthenticationError
@@ -11,7 +10,7 @@ from .._internal import AadClient
 
 if TYPE_CHECKING:
     # pylint:disable=unused-import,ungrouped-imports
-    from typing import Any, Iterable, Optional
+    from typing import Any, Optional, Sequence
     from azure.core.credentials import AccessToken
 
 
@@ -55,27 +54,26 @@ class AuthorizationCodeCredential(AsyncCredentialBase):
     async def get_token(self, *scopes: str, **kwargs: "Any") -> "AccessToken":
         """Request an access token for `scopes`.
 
+        .. note:: This method is called by Azure SDK clients. It isn't intended for use in application code.
+
         The first time this method is called, the credential will redeem its authorization code. On subsequent calls
         the credential will return a cached access token or redeem a refresh token, if it acquired a refresh token upon
         redeeming the authorization code.
 
-        .. note:: This method is called by Azure SDK clients. It isn't intended for use in application code.
-
-        :param str scopes: desired scopes for the access token
+        :param str scopes: desired scopes for the access token. This method requires at least one scope.
         :rtype: :class:`azure.core.credentials.AccessToken`
         :raises ~azure.core.exceptions.ClientAuthenticationError: authentication failed. The error's ``message``
           attribute gives a reason. Any error response from Azure Active Directory is available as the error's
           ``response`` attribute.
-        :keyword ~concurrent.futures.Executor executor: An Executor instance used to execute asynchronous calls
-        :keyword loop: An event loop on which to schedule network I/O. If not provided, the currently running
-            loop will be used.
         """
+        if not scopes:
+            raise ValueError("'get_token' requires at least one scope")
 
         if self._authorization_code:
-            loop = kwargs.pop("loop", None) or asyncio.get_event_loop()
             token = await self._client.obtain_token_by_authorization_code(
-                code=self._authorization_code, redirect_uri=self._redirect_uri, scopes=scopes, loop=loop, **kwargs
+                scopes=scopes, code=self._authorization_code, redirect_uri=self._redirect_uri, **kwargs
             )
+
             self._authorization_code = None  # auth codes are single-use
             return token
 
@@ -90,10 +88,11 @@ class AuthorizationCodeCredential(AsyncCredentialBase):
 
         return token
 
-    async def _redeem_refresh_token(self, scopes: "Iterable[str]", **kwargs: "Any") -> "Optional[AccessToken]":
-        loop = kwargs.pop("loop", None) or asyncio.get_event_loop()
+    async def _redeem_refresh_token(self, scopes: "Sequence[str]", **kwargs: "Any") -> "Optional[AccessToken]":
         for refresh_token in self._client.get_cached_refresh_tokens(scopes):
-            token = await self._client.obtain_token_by_refresh_token(refresh_token, scopes, loop=loop, **kwargs)
+            if "secret" not in refresh_token:
+                continue
+            token = await self._client.obtain_token_by_refresh_token(scopes, refresh_token["secret"], **kwargs)
             if token:
                 return token
         return None
