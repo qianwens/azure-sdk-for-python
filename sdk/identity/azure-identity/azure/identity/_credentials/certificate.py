@@ -24,6 +24,8 @@ class CertificateCredential(CertificateCredentialBase):
     :keyword password: The certificate's password. If a unicode string, it will be encoded as UTF-8. If the certificate
           requires a different encoding, pass appropriately encoded bytes instead.
     :paramtype password: str or bytes
+    :keyword use_cert_sn_issuer: if True, the public key certificate will be sent through 'x5c' JWT header only for
+          subject name and issuer authentication to support cert auto rolls.
     :keyword bool enable_persistent_cache: if True, the credential will store tokens in a persistent cache. Defaults to
           False.
     :keyword bool allow_unencrypted_cache: if True, the credential will fall back to a plaintext cache when encryption

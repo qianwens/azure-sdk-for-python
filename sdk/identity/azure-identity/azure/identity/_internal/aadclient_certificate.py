@@ -22,18 +22,29 @@ class AadClientCertificate(object):
     :param bytes pem_bytes: bytes of a a PEM-encoded certificate including the private key
     :param bytes password: (optional) the certificate's password
     """
-    def __init__(self, pem_bytes, password=None):
+    def __init__(self, pem_bytes, password=None, use_cert_sn_issuer=False):
         # type: (bytes, Optional[bytes]) -> None
         cert = x509.load_pem_x509_certificate(pem_bytes, default_backend())
         fingerprint = cert.fingerprint(hashes.SHA1())  # nosec
         self._private_key = serialization.load_pem_private_key(pem_bytes, password=password, backend=default_backend())
         self._thumbprint = six.ensure_str(base64.urlsafe_b64encode(fingerprint), encoding="utf-8")
+        if use_cert_sn_issuer:
+            import re
+            match = re.search(r'\-+BEGIN CERTIFICATE.+\-+(?P<public>[^-]+)\-+END CERTIFICATE.+\-+',
+                              pem_bytes.decode('utf-8'), re.I)
+            self._public_certificate = match.group('public').strip()
 
     @property
     def thumbprint(self):
         # type: () -> str
         """The certificate's SHA1 thumbprint as a base64url-encoded string"""
         return self._thumbprint
+
+    @property
+    def public_certificate(self):
+        # type: () -> str
+        """The certificate's public certificate"""
+        return self._public_certificate if hasattr(self, '_public_certificate') else None
 
     def sign(self, plaintext):
         # type: (bytes) -> bytes

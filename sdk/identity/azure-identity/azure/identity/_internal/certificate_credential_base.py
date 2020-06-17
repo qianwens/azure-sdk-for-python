@@ -42,7 +42,8 @@ class CertificateCredentialBase(ABC):
         with open(certificate_path, "rb") as f:
             pem_bytes = f.read()
 
-        self._certificate = AadClientCertificate(pem_bytes, password=password)
+        use_cert_sn_issuer = kwargs.pop("use_cert_sn_issuer", None)
+        self._certificate = AadClientCertificate(pem_bytes, password=password, use_sn_issuer=use_cert_sn_issuer)
 
         enable_persistent_cache = kwargs.pop("enable_persistent_cache", False)
         if enable_persistent_cache:

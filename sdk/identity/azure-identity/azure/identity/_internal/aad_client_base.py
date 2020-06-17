@@ -185,7 +185,15 @@ class AadClientBase(ABC):
         # type: (AadClientCertificate) -> str
         now = int(time.time())
         header = six.ensure_binary(
-            json.dumps({"typ": "JWT", "alg": "RS256", "x5t": certificate.thumbprint}), encoding="utf-8"
+            json.dumps(
+                {
+                    "typ": "JWT",
+                    "alg": "RS256",
+                    "x5t": certificate.thumbprint,
+                    "x5c": certificate.public_certificate
+                }
+            ),
+            encoding="utf-8"
         )
         payload = six.ensure_binary(
             json.dumps(
